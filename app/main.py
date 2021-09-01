@@ -31,7 +31,7 @@ from .schemas import AuthDetails
 # Comment this out if you using migrations.
 # models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(title="KTP Face Verification")
 app.mount("/upload_files", StaticFiles(directory="upload_files"), name="upload_files")
 
 # auth_handler = AuthHandler()
@@ -62,26 +62,17 @@ app.mount("/upload_files", StaticFiles(directory="upload_files"), name="upload_f
 #     token = auth_handler.encode_token(user['username'])
 #     return { 'token': token }
 
-
-@app.get("/")
-def index() -> Any:
-    return {"message": "gai"}
-
-
-@app.post("/upload/")
+@app.post("/v1/verify/")
 # async def create_upload_file(file: UploadFile = File(...), username=Depends(auth_handler.auth_wrapper)):
 async def create_upload_file(request: Request, file: UploadFile = File(...), ):
     contents = await file.read()
     img = convert_buffer_to_image(contents)
     verify, faces, faces_link, img, img_link = idcard_face_verify(img, request)
     
-    return {
-        'results': {
-            'verification': verify,
-            'faces':faces_link,
-            'image': img_link,
-        },
-    }
+    verify['faces'] = faces_link
+    verify['image'] = img_link
+    
+    return { 'results': verify}
 
 def convert_buffer_to_image(contents):
     nparr = np.fromstring(contents, np.uint8)
